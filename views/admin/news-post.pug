@@ -1,52 +1,152 @@
 extend ../news
 
 block head-custom
-  +meta-title("Post, Modify or Remove News")
-  +meta-description("Anthon Open Source Community")
+    +meta-title("Post, Modify or Remove News")
+    +meta-description("Anthon Open Source Community")
 
 append stylesheet
-  +include-css("/assets/css/admin-news-post.css")
+    +include-css("/assets/css/admin-news-post.css")
+    +include-css("/assets/css/materialize.min.css")
+    +include-css("http://fonts.googleapis.com/icon?family=Material+Icons")
+    +include-css("/assets/css/qtcreator_light.css")
+    +include-css("https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.22.0/codemirror.css")
+    +include-css("https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.22.0/theme/base16-light.css")
+
+append javascript
+    +include-js("/assets/js/materialize.min.js")
+    +include-js("/assets/js/webstorage.js")
+    +include-js("https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.22.0/codemirror.min.js")
+    +include-js("https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.22.0/mode/markdown/markdown.min.js")
 
 include ../templates/flow-include
 block content
-  #wrapper.row
-    .col-sm-8
-      h2.afe-news-post-title PREVIEW
-      +flow([params])
-    .col-sm-4
-      h2.afe-news-post-title EDITOR
-      form(method="post", action="#")
-        p: input(name="title", type="text", placeholder="(Leave here empty to delete news) Title", value=params.title)
-        p: input(name="type", type="text", placeholder="(Required except fetching) Type: news, bug, etc.", value=params.type)
-        p: textarea(name="content")=params.content
-        p: input(name="imgOrig", type="text", placeholder="(Optional) URL of Image", value=params.imgOrig)
-        p: input(name="imgThumb", type="text", placeholder="(Required if the former is not empty) Thumbnail", value=params.imgThumb)
-        p: input(name="timestamp", type="text", placeholder="(Unique, Key) Timestamp", required, value=params.timestamp)
-        p
-          input#radio-fetch(type="radio", name="action", value="fetch")
-          label.afe-radio-caption(for="radio-fetch") Fetch
+    #wrapper.row
+        .col-sm-8
+            h2.afe-news-post-title PREVIEW
+            +flow([params])
+        .col-sm-4
+            h2.afe-news-post-title EDITOR
+            form(method="post", action="#", id="news")
+                p(class="input-field")
+                    input(name="title", type="text", placeholder="Leave here empty to delete news", value=params.title)
+                    label(for="title") Title
+                p(class="input-field")
+                    input(name="type", class="tooltipped", data-position="bottom", data-delay="50", data-tooltip="e.g. news, bug, etc.", type="text", placeholder="(Required unless fetching)", value=params.type)
+                    label(for="type") Type
+                p(class="input-field")
+                    textarea(name="content", type="textarea", id="content")=params.content
+                    label(for="content") Content
+                p(class="input-field")
+                    input(name="imgOrig", type="text", placeholder="(Optional)", value=params.imgOrig)
+                    label(for="imgOrig") URL of Image
+                p(class="input-field")
+                    input(name="imgThumb", type="text", placeholder="(Required if the former is not empty)", value=params.imgThumb)
+                    label(for="imgThumb") URL of Thumbnail
+                p(class="input-field")
+                    input(name="timestamp", type="number", required, value=params.timestamp)
+                    label(for="timestamp", data-error="wrong" data-success="right") Timestamp
+                p
+                    input#radio-fetch(type="radio", name="action", value="fetch")
+                    label.afe-radio-caption(for="radio-fetch") Fetch
 
-          input#radio-preview(type="radio", name="action", value="preview", checked="checked")
-          label.afe-radio-caption(for="radio-preview") Preview
+                    input#radio-preview(type="radio", name="action", value="preview", checked="checked")
+                    label.afe-radio-caption(for="radio-preview") Preview
 
-          br
+                    br
 
-          if params.previewed
-            input#radio-post(type="radio", name="action", value="post")
-          else
-            input#radio-post(type="radio", name="action", value="post", disabled)
-          label.afe-radio-caption(for="radio-post") Post (preview first)
+                    if params.previewed
+                        input#radio-post(type="radio", name="action", value="post")
+                    else
+                        input#radio-post(type="radio", name="action", value="post", disabled)
+                    label.afe-radio-caption(for="radio-post") Post (preview first)
 
-          if params.previewed
-            input#radio-put(type="radio", name="action", value="put")
-          else
-            input#radio-put(type="radio", name="action", value="put", disabled)
-          label.afe-radio-caption(for="radio-fetch") Put (override)
+                    if params.previewed
+                        input#radio-put(type="radio", name="action", value="put")
+                    else
+                        input#radio-put(type="radio", name="action", value="put", disabled)
+                    label.afe-radio-caption(for="radio-put") Put (override)
+                br
+                p(class="input-field")
+                    button(type="submit", class="waves-effect waves-light btn-large", value="Submit") Submit
+                        i(class="material-icons right") send
+            br
+            p
+              label Draft
+              br
+              button(class="waves-effect waves-light btn", onclick="draftSave();") Save
+                  i(class="material-icons left") save
+              button(class="waves-effect waves-light btn", onclick="draftLoad();") Load
+                  i(class="material-icons left") unarchive
 
-        p: input(type="submit", value="Submit")
+append javascript
+    script.
+        function changeToCM() {
+            var codemirror = CodeMirror.fromTextArea(document.getElementById("content"), {
+              lineNumbers: true,
+              lineWrapping: true,
+              mode: "text/x-markdown",
+              theme: "base16-light"
+              });
+            return codemirror;
+        }
+        var codemirror = changeToCM();
+        function draftSave() {
+            if (!isStorageAvailable('localStorage')) {
+                Materialize.toast("This browser doesn\'t support this feature...", 3000);
+            }
+            if (saveArgs(collectArgs(), null)) {
+                Materialize.toast("Draft Saved", 3000);
+            } else {
+                Materialize.toast("Failed to save the draft!", 3000);
+            }
+        }
+
+        function iterFields() {
+            return $("#news *[type^=text]");
+        }
+        function collectArgs() {
+            var args_dict = {};
+            for (let field of iterFields()) {
+                args_dict[String(field.name)] = field.value;
+            }
+            args_dict['content'] = codemirror.getValue();
+            return args_dict;
+        }
+
+        function draftLoad() {
+            if (!isStorageAvailable('localStorage')) {
+                Materialize.toast("This browser doesn\'t support this feature...", 3000);
+            }
+            if (fillForm()) {
+                Materialize.toast("Draft loaded", 3000);
+            } else {
+                Materialize.toast("Failed to load the draft!", 3000);
+            }
+        }
+
+        function fillForm() {
+            var args_dict = loadArgs(null);
+            var fields = iterFields();
+            if (args_dict) {
+                for (field in args_dict) {
+                    for (blank of fields) {
+                        if (blank.name == field) {
+                            if (field == 'content') {
+                                codemirror.setValue(args_dict[field]);
+                            }
+                            blank.value = args_dict[field];
+                            break;
+                        }
+                    }
+                }
+                return true;
+            } else {
+                return false;
+            }
+        }
 
 include ../templates/lightbox-include
 append stylesheet
-  +lightbox-css()
+    +lightbox-css()
 append javascript
-  +lightbox-js-flow()
+    +lightbox-js-flow()

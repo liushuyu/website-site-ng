@@ -33,7 +33,21 @@ const prototypeVersion = 3;
 let redis   = require('redis');
 let bluebird= require('bluebird');
 let slug    = require('slug');
-let md      = require('markdown').markdown;
+let hljs    = require('highlight.js');
+let md      = require('markdown-it')({
+    highlight: function (str, lang) {
+        if (lang && hljs.getLanguage(lang)) {
+            try {
+                return hljs.highlight(lang, str).value;
+            } catch (__) {}
+        }
+        return ''; // use external default escaping
+    },
+    html: true,
+    linkify: true,
+    typographer: true
+}).use(require('markdown-it-abbr'))
+  .use(require('markdown-it-footnote'));
 let log     = require('./log.js');
 
 slug.defaults.mode = 'pretty';
@@ -82,7 +96,7 @@ exports.render = stru => {
   let xstru = stru;
   date.setTime(xstru.timestamp);
   xstru.date = formatDate(date).toUpperCase();
-  xstru.htmlcontent = xstru.content == undefined? '' : md.toHTML(xstru.content);
+  xstru.htmlcontent = xstru.content == undefined? '' : md.render(xstru.content);
   return xstru;
 };
 

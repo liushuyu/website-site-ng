@@ -7,7 +7,7 @@ let router = express.Router();
 
 let yaml    = require('js-yaml');
 let fs      = require('fs');
-let md      = require('markdown').markdown;
+let md      = require('markdown-it')({html: true, linkify: true, typographer: true});
 let log     = require('./log.js');
 let newsdb  = require('./news-db.js');
 let slug    = require('slug');
@@ -238,7 +238,7 @@ router.get( '/about' , (req, res) => {
 
 router.get( '/os-download', (req, res) => {
   const mdText = fs.readFileSync(CONTENTS_DIR + '/os-download.md', 'utf8');
-  const mdHtml = mdText == undefined? '' : md.toHTML(mdText);
+  const mdHtml = mdText == undefined? '' : md.render(mdText);
   res.render('os-download', {'params' : {'guideHtml': mdHtml}});
 });
 
